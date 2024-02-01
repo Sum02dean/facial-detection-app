@@ -62,7 +62,6 @@ def modify_value(d):
     d['train_set'] = 0
     return d
 
-
 def run_scenario(table_name, dyn_resource):
     """
     This function runs a scenario with the given table name and DynamoDB resource.
@@ -82,9 +81,8 @@ def run_scenario(table_name, dyn_resource):
 
     return dt
 
-
 if __name__ == "__main__":
-    
+
     # Spcify data paths
     data_src = "temp_data/"
     meta_data_source = "temp_data/FDDB-folds"
@@ -129,12 +127,11 @@ if __name__ == "__main__":
         "dynamodb", region_name=AWS_REGION,
         aws_access_key_id=AWS_ACCESS_KEY, 
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
-    
+
     # Run scenario
     dt_name = 'facial-detection-dataset'
     dt = run_scenario(table_name=dt_name, dyn_resource=dyn)
 
     # Upload data in batches
     dt.write_batch(x)
-
     print(f"\nDone. {dt.table.name} contains {dt.table.item_count} items.")
