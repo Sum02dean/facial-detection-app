@@ -3,9 +3,10 @@ from botocore.exceptions import ClientError
 from boto3.dynamodb.conditions import Key
 import logging
 import time
+from credentials import AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY, AWS_REGION
+
 
 logger = logging.getLogger(__name__)
-dynamodb = boto3.resource("dynamodb")
 MAX_GET_SIZE = 100
 
 def do_batch_get(batch_keys):
@@ -52,9 +53,7 @@ def do_batch_get(batch_keys):
 
     return retrieved
 
-
-
-# Set up our logger
+# Set up logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
@@ -66,10 +65,35 @@ class DynamoDBTable:
         :param dyn_resource: A Boto3 DynamoDB resource.
         """
         self.dyn_resource = dyn_resource
-        # The table variable is set during the scenario in the call to
-        # 'exists' if the table exists. Otherwise, it is set by 'create_table'.
         self.table = None
 
+    def exists(self, table_name):
+        """
+        Determines whether a table exists. As a side effect, stores the table in
+        a member variable.
+
+        :param table_name: The name of the table to check.
+        :return: True when the table exists; otherwise, False.
+        """
+        try:
+            table = self.dyn_resource.Table(table_name)
+            table.load()
+            exists = True
+        except ClientError as err:
+            if err.response["Error"]["Code"] == "ResourceNotFoundException":
+                exists = False
+            else:
+                logger.error(
+                    "Couldn't check for existence of %s. Here's why: %s: %s",
+                    table_name,
+                    err.response["Error"]["Code"],
+                    err.response["Error"]["Message"],
+                )
+                raise
+        else:
+            self.table = table
+        return exists
+    
     def create_table(self, table_name):
         """
         Creates an Amazon DynamoDB table that can be used to store image data.
@@ -85,8 +109,8 @@ class DynamoDBTable:
                     {"AttributeName": "image_name", "KeyType": "RANGE"},  # Sort key
                 ],
                 AttributeDefinitions=[
-                    {"AttributeName": "year", "AttributeType": "N"},
-                    {"AttributeName": "title", "AttributeType": "S"},
+                    {"AttributeName": "train_set", "AttributeType": "N"},
+                    {"AttributeName": "image_name", "AttributeType": "S"},
                 ],
                 ProvisionedThroughput={
                     "ReadCapacityUnits": 10,
@@ -120,7 +144,7 @@ class DynamoDBTable:
             )
             raise
 
-    def add_entry(self, image_name, num_faces, faces, train_set):
+    def add_entry(self, json_file):
         """
         Adds an entry to the table.
 
@@ -132,16 +156,16 @@ class DynamoDBTable:
         try:
             self.table.put_item(
                 Item={
-                    "image_name": image_name,
-                    "num_faces": num_faces,
-                    "faces": faces,
-                    "train_set": train_set
+                    "image_name": json_file["image_name"],
+                    "num_faces": json_file["num_faces"],
+                    "faces": json_file["faces"],
+                    "train_set": json_file["train_set"],
                 }
             )
         except ClientError as err:
             logger.error(
                 "Couldn't add entry %s to table %s. Here's why: %s: %s",
-                image_name,
+                json_file["image_name"],
                 self.table.name,
                 err.response["Error"]["Code"],
                 err.response["Error"]["Message"],
@@ -163,8 +187,9 @@ class DynamoDBTable:
         """
         try:
             with self.table.batch_writer() as writer:
-                for movie in entries:
-                    writer.put_item(Item=movie)
+                for entry in entries:
+                    writer.put_item(Item=entry)
+
         except ClientError as err:
             logger.error(
                 "Couldn't load data into table %s. Here's why: %s: %s",

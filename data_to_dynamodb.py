@@ -98,19 +98,19 @@ if __name__ == "__main__":
         lines = [x.strip() for x in lines]
         all_lines.append(lines)
 
+    # Aggregate all lines
     all_sublists = []
     for lines in all_lines:
         sublists = split_list_on_element(lines, split_element = "/")
         all_sublists.append(sublists)
-    len(sublists)
 
-    # # Pipe through lambda function
+    # Pipe through lambda function
     all_jsons = []
     for sublists in all_sublists:
         jsons = list(map(map_list_to_json, sublists))
         all_jsons.append(jsons)
 
-    # Flatted list of dictionaries
+    # Flatten list of dictionaries
     flat_json_list = [item for sublist in all_jsons for item in sublist]
 
     # Create train and test sets
@@ -124,13 +124,13 @@ if __name__ == "__main__":
     duplicates = [x for x in names if names.count(x) > 1]
     assert len(duplicates) == 0
 
-
-
+    # Set up DynamoDB
     dyn = boto3.resource(
         "dynamodb", region_name=AWS_REGION,
         aws_access_key_id=AWS_ACCESS_KEY, 
         aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
     
+    # Run scenario
     dt_name = 'facial-detection-dataset'
     dt = run_scenario(table_name=dt_name, dyn_resource=dyn)
 
