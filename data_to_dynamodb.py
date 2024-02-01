@@ -42,7 +42,7 @@ def map_list_to_json(x):
         dict: The JSON object containing image_name, num_faces, faces, and train_set.
     """
     return {
-        'image_name': os.path.join(x[0]),
+        'image_name': os.path.join(x[0].replace('/', '_')),
         'num_faces': int(x[1]),
         'faces': x[2:],
         'train_set': 1
@@ -115,23 +115,25 @@ if __name__ == "__main__":
     train, test = train_test_split(flat_json_list, test_size=0.2)
     test = list(map(modify_value, test))
     train.extend(test)
-    x = np.array(train)
+    all_data = np.array(train)
 
     # Check if duplicates in list
-    names = [x['image_name'] for x in x]
+    names = [x['image_name'] for x in all_data]
     duplicates = [x for x in names if names.count(x) > 1]
     assert len(duplicates) == 0
 
     # Set up DynamoDB
     dyn = boto3.resource(
         "dynamodb", region_name=AWS_REGION,
-        aws_access_key_id=AWS_ACCESS_KEY, 
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY)
+        aws_access_key_id=AWS_ACCESS_KEY,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+        )
 
     # Run scenario
     dt_name = 'facial-detection-dataset'
     dt = run_scenario(table_name=dt_name, dyn_resource=dyn)
 
     # Upload data in batches
-    dt.write_batch(x)
-    print(f"\nDone. {dt.table.name} contains {dt.table.item_count} items.")
+    print(np.shape(all_data))
+    dt.write_batch(all_data)
+    print(f"\nDone uploading to {dt.table.name}.")

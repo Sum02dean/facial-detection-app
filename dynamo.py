@@ -199,15 +199,11 @@ class DynamoDBTable:
             )
             raise
 
-    def query_table(self, query_by="is_train", query=1):
-        """
-        Queries for observations based on criteria.
-
-        :param query_by: Query criteria.
-        :return: The list of entries that contain the key.
-        """
+    def query_table(self, query_by, query, is_train):
         try:
-            response = self.table.query(KeyConditionExpression=Key(query_by).eq(query))
+            response = self.table.query(
+                KeyConditionExpression=Key("train_set").eq(is_train) & Key(query_by).eq(query)
+            )
         except ClientError as err:
             logger.error(
                 "Couldn't query for entries with name %s. Here's why: %s: %s",
