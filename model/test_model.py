@@ -1,4 +1,4 @@
-from darknet import *
+from model.darknet import *
 import wget 
 import os 
 
@@ -22,7 +22,7 @@ else:
 
 # Create network blocks
 num_classes = 80
-model = DarkNet("cfg/yolov3.cfg")
+model = DarkNet("../cfg/yolov3.cfg")
 
 # Test model
 inp = get_test_input(file_path)
