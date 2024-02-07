@@ -1,5 +1,12 @@
-__pycache__
+
+**__pycache__
+**__pycache__/
 __pycache__/
+__pycache__
+**/.DS_Store
+DS_Store
+*.py[cod]
+*$py.class
 credentials.py
 temp_data/
 flagged/
